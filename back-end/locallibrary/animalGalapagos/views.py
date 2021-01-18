@@ -19,6 +19,8 @@ import random as rn
 
 class Animal(APIView):
 
+    modelo = keras.models.load_model('./modelo/my_model.h5')
+
 
     def post(self, request, *args, **kwargs):
 
@@ -29,7 +31,7 @@ class Animal(APIView):
         serializer_class = analizarImagenSerializer
 
 
-        modelo = keras.models.load_model('./modelo/my_model.h5')
+        
 
         base = request.data.get('imagenAnimal')
 
@@ -55,7 +57,7 @@ class Animal(APIView):
             img_array = cv2.imread(url,cv2.IMREAD_COLOR)
             new_array = cv2.resize(img_array,(IMG_SIZE,IMG_SIZE))
             img = new_array.reshape(-1,IMG_SIZE,IMG_SIZE, 3)
-            prediction = modelo.predict(img)
+            prediction = self.modelo.predict(img)
 
             indicesOrdenados = prediction.argsort(axis=1)[0][-3:][::-1]
             prediction = prediction[0]
