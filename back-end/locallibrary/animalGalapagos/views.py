@@ -1,3 +1,4 @@
+# -*- coding: cp1252 -*-
 from django.shortcuts import render
 from rest_framework import generics
 from rest_framework.views import APIView
@@ -19,23 +20,20 @@ import random as rn
 
 class Animal(APIView):
 
-    modelo = keras.models.load_model('./modelo/my_model.h5')
+    modelo_3clases = keras.models.load_model('./modelo/3_clases.h5')
+    
+    modelo_aereo = keras.models.load_model('./modelo/red_aereo.h5')
+    modelo_marino = keras.models.load_model('./modelo/red_marina.h5')
+    modelo_terrestre = keras.models.load_model('./modelo/red_terrestre.h5')
 
-
+    modelos_detallados = [modelo_aereo,modelo_marino,modelo_terrestre]  #el orden está definido de acuerdo a las clases del modelo_3clases
+    
     def post(self, request, *args, **kwargs):
-
-
-
         
-
         serializer_class = analizarImagenSerializer
-
-
-        
 
         base = request.data.get('imagenAnimal')
 
-        
         base = "data:image/jpg;base64," + base
         format, imgstr = base.split(';base64,') 
         ext = format.split('/')[-1] 
@@ -57,7 +55,13 @@ class Animal(APIView):
             img_array = cv2.imread(url,cv2.IMREAD_COLOR)
             new_array = cv2.resize(img_array,(IMG_SIZE,IMG_SIZE))
             img = new_array.reshape(-1,IMG_SIZE,IMG_SIZE, 3)
-            prediction = self.modelo.predict(img)
+
+            prediction_3_clases = self.modelo_3clases.predict(img)
+            
+            ind_clase = prediction_3_clases.argmax(axis=1)[0]
+            
+            #Se utiliza el modelo especifico de acuerdo a ind_clase
+            prediction = self.modelos_detallados[ind_clase].predict(img)
 
             indicesOrdenados = prediction.argsort(axis=1)[0][-3:][::-1]
             prediction = prediction[0]
@@ -75,9 +79,9 @@ class Animal(APIView):
             solicitud.save()
 
 
-            datos1 = AnimalModel.objects.filter(idAnimal=ind_max1)
-            datos2 = AnimalModel.objects.filter(idAnimal=ind_max2)
-            datos3 = AnimalModel.objects.filter(idAnimal=ind_max3)
+            datos1 = AnimalModel.objects.filter(idAnimal=ind_max1,categoria=ind_clase)
+            datos2 = AnimalModel.objects.filter(idAnimal=ind_max2,categoria=ind_clase)
+            datos3 = AnimalModel.objects.filter(idAnimal=ind_max3,categoria=ind_clase)
 
 
             opc1 = {'nombreAnimal':datos1[0].nombreAnimal,'nombreTecnico':datos1[0].nombreTecnico,'accuracy':num_max1,'imagenAnimal':datos1[0].imagenAnimal.url}
